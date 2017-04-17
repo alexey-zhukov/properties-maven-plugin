@@ -19,16 +19,6 @@ package org.codehaus.mojo.properties;
  * under the License.
  */
 
-import java.io.BufferedInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Enumeration;
-import java.util.Properties;
-
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -37,6 +27,12 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.cli.CommandLineUtils;
+
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * The read-project-properties goal reads property files and URLs and stores the properties as project properties. It
@@ -115,6 +111,19 @@ public class ReadPropertiesMojo
     @Parameter
     private String keyPrefix = null;
 
+    @Parameter
+    private String[] skippedKeys = new String[0];
+
+    public void setSkippedKeys(String[] skippedKeys) {
+        if (skippedKeys == null)
+            this.skippedKeys = new String[0];
+        else {
+            this.skippedKeys = new String[skippedKeys.length];
+            System.arraycopy( skippedKeys, 0, this.skippedKeys, 0, skippedKeys.length );
+        }
+    }
+
+
     public void setKeyPrefix( String keyPrefix )
     {
         this.keyPrefix = keyPrefix;
@@ -134,6 +143,8 @@ public class ReadPropertiesMojo
         loadFiles();
 
         loadUrls();
+
+        resolver.setSkippedKeys(skippedKeys);
 
         resolveProperties();
     }

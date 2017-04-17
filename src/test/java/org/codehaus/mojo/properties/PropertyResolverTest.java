@@ -19,12 +19,14 @@ package org.codehaus.mojo.properties;
  * under the License.
  */
 
-import static org.hamcrest.CoreMatchers.*;
+import org.apache.maven.plugin.MojoFailureException;
+import org.junit.Test;
+
+import java.util.Properties;
+
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
-import org.junit.Test;
-import org.apache.maven.plugin.MojoFailureException;
-import java.util.Properties;
 
 /**
  * Tests the support class that produces concrete values from a set of properties.
@@ -136,6 +138,51 @@ public class PropertyResolverTest
         assertEquals( "value", value2 );
         assertNull( value5 );
         assertNull( value6 );
+    }
+
+    @Test
+    public void skipProperties() throws MojoFailureException
+    {
+        PropertyResolver resolver = new PropertyResolver();
+        resolver.setSkippedKeys(new String[]{"p5", "p7"});
+
+        Properties properties = new Properties();
+        properties.setProperty( "p1", "${p2}" );
+        properties.setProperty( "p2", "value" );
+        properties.setProperty( "p5", "${p5}" );
+        properties.setProperty( "p6", "${p7}" );
+        properties.setProperty( "p7", "${p6}" );
+
+        assertEquals("value", resolver.getPropertyValue( "p1", properties, new Properties() ));
+        assertEquals("value", resolver.getPropertyValue( "p2", properties, new Properties() ));
+        // allowed cycle
+        assertEquals("${p5}", resolver.getPropertyValue( "p5", properties, new Properties() ));
+        // p6 -> ${p7} -> ${p7}
+        assertEquals("${p7}", resolver.getPropertyValue( "p6", properties, new Properties() ));
+        // ${p7} -> ${p7}
+        assertEquals("${p7}", resolver.getPropertyValue( "p7", properties, new Properties() ));
+    }
+
+    @Test public void skipSystemProperties() throws MojoFailureException
+    {
+        PropertyResolver resolver = new PropertyResolver();
+        resolver.setSkippedKeys(new String[]{"p5", "p7"});
+
+        Properties properties = new Properties();
+        properties.setProperty( "p1", "${p2}" );
+        properties.setProperty( "p2", "value" );
+        properties.setProperty( "p5", "${p5}" );
+        properties.setProperty( "p6", "${p7}" );
+        properties.setProperty( "p7", "${p6}" );
+
+        assertEquals("value", resolver.getPropertyValue( "user.home", properties, new Properties() ));
+        assertEquals("value", resolver.getPropertyValue( "p2", properties, new Properties() ));
+        // allowed cycle
+        assertEquals("${p5}", resolver.getPropertyValue( "p5", properties, new Properties() ));
+        // p6 -> ${p7} -> ${p7}
+        assertEquals("${p7}", resolver.getPropertyValue( "p6", properties, new Properties() ));
+        // ${p7} -> ${p7}
+        assertEquals("${p7}", resolver.getPropertyValue( "p7", properties, new Properties() ));
     }
 
     @Test

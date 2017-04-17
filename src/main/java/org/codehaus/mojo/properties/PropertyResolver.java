@@ -19,10 +19,18 @@ package org.codehaus.mojo.properties;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
 
 class PropertyResolver
 {
+    private List<String> skippedKeys = Collections.emptyList();
+
+    public void setSkippedKeys(String[] skippedKeys) {
+        this.skippedKeys = Arrays.asList(skippedKeys);
+    }
 
     /**
      * Retrieves a property value, replacing values like ${token} using the Properties to look them up. Shamelessly
@@ -50,11 +58,16 @@ class PropertyResolver
         while ( buffer.hasMoreLegalPlaceholders() )
         {
             String newKey = buffer.extractPropertyKey();
-            String newValue = fromPropertiesThenSystemThenEnvironment( newKey, properties, environment );
 
-            circularDefinitionPreventer.visited( newKey, newValue );
+            if (!skippedKeys.contains(newKey)) {
+                String newValue = fromPropertiesThenSystemThenEnvironment( newKey, properties, environment );
 
-            buffer.add( newKey, newValue );
+                circularDefinitionPreventer.visited(newKey, newValue);
+
+                buffer.add(newKey, newValue);
+            } else {
+                buffer.add(newKey, null);
+            }
         }
 
         return buffer.toString();
